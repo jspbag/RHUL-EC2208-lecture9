@@ -175,6 +175,7 @@ lines(as.zoo(GDPGrowth.train), lwd = 2, col = "blue")
 ## An $AR(2)$-model for US GDP growth
 
 ```{r echo=TRUE, error=FALSE, warning=FALSE, out.width = "70%"}
+# Estimate AR(2) model for US GDP growth
 ar2 <- dynlm(ts(GDPGrowth.train) ~ L(ts(GDPGrowth.train)) + L(ts(GDPGrowth.train), 2)) 
 summary(ar2)
 ```
@@ -182,8 +183,8 @@ summary(ar2)
 ## One-step ahead US GDP growth forecast
 
 ```{r echo=TRUE, error=FALSE, warning=FALSE, out.width = "70%"}
-T <-length(GDPGrowth.train) # Length of observed series
 # Produce one-step ahead forecast of GDP growth
+T <-length(GDPGrowth.train) # Length of observed series
 fcast.ar2 <- ar2$coefficients %*% c(1, GDPGrowth.train[T], GDPGrowth.train[(T-1)])
 fcast.ar2 # Print to console
 ```
@@ -204,7 +205,7 @@ c(lb, ub)
 ## US GDP growth, forecast, and 95% forecast interval
 
 ```{r echo=FALSE, error=FALSE, warning=FALSE, out.width = "70%"}
-# Plot US quarterly GDP time series w/ AR(1) and AR(4) forecasts
+# Plot US quarterly GDP time series w/ AR(2) forecast and 95% forecast interval
 plot(as.zoo(GDPGrowth),
      col = "blue",
      lwd = 1,

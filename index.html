@@ -639,8 +639,9 @@ Y_{T+1} - \hat{Y}_{T+1|T} = u_{T+1} - [(\hat{\beta}_0 - \beta_0) \, + \\
 </section>
 <section id="an-ar2-model-for-us-gdp-growth-1" class="slide level2">
 <h2>An <span class="math inline">\(AR(2)\)</span>-model for US GDP growth</h2>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>ar2 <span class="ot">&lt;-</span> <span class="fu">dynlm</span>(<span class="fu">ts</span>(GDPGrowth.train) <span class="sc">~</span> <span class="fu">L</span>(<span class="fu">ts</span>(GDPGrowth.train)) <span class="sc">+</span> <span class="fu">L</span>(<span class="fu">ts</span>(GDPGrowth.train), <span class="dv">2</span>)) </span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(ar2)</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Estimate AR(2) model for US GDP growth</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>ar2 <span class="ot">&lt;-</span> <span class="fu">dynlm</span>(<span class="fu">ts</span>(GDPGrowth.train) <span class="sc">~</span> <span class="fu">L</span>(<span class="fu">ts</span>(GDPGrowth.train)) <span class="sc">+</span> <span class="fu">L</span>(<span class="fu">ts</span>(GDPGrowth.train), <span class="dv">2</span>)) </span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(ar2)</span></code></pre></div>
 <pre><code>## 
 ## Time series regression with &quot;ts&quot; data:
 ## Start = 3, End = 171
@@ -667,8 +668,8 @@ Y_{T+1} - \hat{Y}_{T+1|T} = u_{T+1} - [(\hat{\beta}_0 - \beta_0) \, + \\
 </section>
 <section id="one-step-ahead-us-gdp-growth-forecast" class="slide level2">
 <h2>One-step ahead US GDP growth forecast</h2>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>T <span class="ot">&lt;-</span><span class="fu">length</span>(GDPGrowth.train) <span class="co"># Length of observed series</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Produce one-step ahead forecast of GDP growth</span></span>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Produce one-step ahead forecast of GDP growth</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>T <span class="ot">&lt;-</span><span class="fu">length</span>(GDPGrowth.train) <span class="co"># Length of observed series</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>fcast.ar2 <span class="ot">&lt;-</span> ar2<span class="sc">$</span>coefficients <span class="sc">%*%</span> <span class="fu">c</span>(<span class="dv">1</span>, GDPGrowth.train[T], GDPGrowth.train[(T<span class="dv">-1</span>)])</span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>fcast.ar2 <span class="co"># Print to console</span></span></code></pre></div>
 <pre><code>##          [,1]
