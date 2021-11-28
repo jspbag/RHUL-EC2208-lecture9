@@ -1,0 +1,235 @@
+---
+pagetitle: Forecasting intervals
+output: 
+  revealjs::revealjs_presentation:
+    incremental: false
+    theme: solarized
+    self_contained: false
+    reveal_plugins: ["notes","chalkboard"]
+    # reveal_plugins: ["menu"]
+    highlight: pygments
+    center: true
+    transition: none
+    background_transition: none 
+    reveal_options:
+      # chalkboard:
+      #   theme: whiteboard
+      #   toggleNotesButton: true
+      #   toggleChalkboardButton: true
+      menu:
+        numbers: true
+      slideNumber: true
+      previewLinks: false
+    fig_caption: true
+    pandoc_args:
+    - --indented-code-classes
+    - lineNumbers
+    css: mystyle.css
+    
+--- 
+
+<section>
+
+<h1>Forecasting intervals</h1>
+
+Based on Stock and Watson, ch. 15
+
+<br>
+
+<h2>[Jesper Bagger](mailto:jesper.bagger@rhul.ac.uk)</h2>
+
+<h3>EC2208 | Royal Holloway | 2021/22</h3>
+
+</section>
+
+```{r results='asis', echo=FALSE, include=FALSE}
+library(AER) # load Applied Econometrics with R library
+library(parameters) # Load parameters library for robust SE computation
+library(quantmod) # Load quantmod library for time series analysis
+library(readxl) # Load readxl to load spreadsheet data
+library(stats) # Load stats to compute acf functions
+library(scales) # Load scales to be used in plots
+library(dynlm) # Load dynlm to estimate higher-order autoregressions
+```
+
+# Forecasting uncertainty
+
+## Forecasting uncertainty
+
+- Forecasts are inherently uncertain and error ridden
+
+- Good model selection minimize forecast errors, but does not eliminate them: report forecast uncertainty
+
+- In practice, summary measures of forecast uncertainty are based on the Mean Squared Forecasting Error ($MSFE$)
+
+  $$MSFE = E[Y_{T+1} - \hat{Y}_{T+1|T}]$$
+  
+- The MSFE is unkown and must be estimated. 
+  
+## Use of the $MSFE$
+
+- The pre-recorded lecture discusses three ways of estimating the $MSFE$ (here we consider R-implementation)
+
+- An estimate of the $MSFE$ should be reported alongside the forecast: A forecast interval gives a range of forecasts
+
+- A forecast interval is a good way of conveying forecast uncertainty: wider intervals indicate greater uncertainty
+
+# Forecast intervals
+
+## Forecast intervals
+
+- A 95% forecast interval contains the future value of the forecasted variable in 95% of repeated applications
+
+- A forecast interval is like a confidence interval, but refers to a forecast (not a fixed population coefficient)
+
+- Unlike confidence intervals, however, forecast intervals are typically based on an assumption of normal errors
+
+  (Distribution of OLS estimator $\hat{\beta}$ is well approximated by normal distribution in large samples, even when errors are non-normal; that is not the case for a forecast $Y_{T+1}$)
+
+## $AR(p)$-model for $Y$
+
+- Stationary $Y \sim AR(p)$-model w/ iid normal errors:
+  
+  $$Y_t = \beta_0 + \beta_1 Y_{t-1} + \beta_2 Y_{t-2} + \ldots + \beta_p Y_{t-p} + u_t$$
+  
+  where $u_t \sim \mathcal{N}(0,\sigma_u^2)$.
+  
+- Using $(Y_t; t=1,2,\ldots,T)$ estimate the model by OLS
+
+- The forecast error
+
+  \begin{multline}
+  Y_{T+1} - \hat{Y}_{T+1|T} = u_{T+1} - [(\hat{\beta}_0 - \beta_0) \, + \\
+  (\hat{\beta}_1 - \beta_1) Y_{T} + \ldots + (\hat{\beta}_p - \beta_p) Y_{T-p+1}]
+  \end{multline}
+
+  follows a 0-mean normal distribution w/ variance $MSFE$
+  
+## 95% forecast interval
+
+- Since $Y_{T+1} - \hat{Y}_{T+1|T} \sim \mathcal{N}(0, MSFE)$, it is the case that
+
+  $$P\left[|Y_{T+1} - \hat{Y}_{T+1|T}| < 1.96 \sqrt{MSFE}\right] = 0.95$$
+  
+- It follows that the 95% forecast interval for $Y_{T+1}$ is
+
+  $$\left[ \, \hat{Y}_{T+1|T} - 1.96 \sqrt{\hat{MSFE}}, \hat{Y}_{T+1|T} + 1.96 \sqrt{\hat{MSFE}} \, \right]$$
+  
+  where $\hat{MSFE}$ estimates $MSFE$ (pre-recorded lecture)
+  
+- A 95% forecast interval contains $Y_{T+1}$ in 95% of repeated applications: wider intervals indicate greater uncertainty
+ 
+
+# Forecast intervals for US GDP growth
+
+## US GDP growth data
+
+```{r echo=TRUE, error=FALSE, warning=FALSE, out.width = "70%"}
+# load US macroeconomic data
+usmac_qt <- read_xlsx("us_macro_quarterly.xlsx", sheet = 1, col_types = c("text", rep("numeric", 9)))
+# Fix format of date
+usmac_qt$...1 <- as.yearqtr(usmac_qt$...1, format = "%Y:0%q")
+# Relabel column names in dataframe
+colnames(usmac_qt) <- c("Date", "GDPC96", "JAPAN_IP", "PCECTPI", 
+                        "GS10", "GS1", "TB3MS", "UNRATE", "EXUSUK", "CPIAUCSL")
+# GDP series as xts object
+GDP <- xts(usmac_qt$GDPC96, usmac_qt$Date)["1960::2013"]
+# GDP growth series as xts object
+GDPGrowth <- xts(400 * log(GDP/lag(GDP)))
+# Training data
+GDPGrowth.train <- na.omit(GDPGrowth["1960::2002"]) 
+```
+
+## US GDP growth
+
+```{r echo=FALSE, error=FALSE, warning=FALSE, out.width = "70%"}
+# Plot US quarterly GDP time series
+plot(as.zoo(GDPGrowth),
+     col = "blue",
+     lwd = 1,
+     lty = "dashed",
+     ylab = "Growth Rates",
+     xlab = "Date",
+     main = "U.S. Real GDP Growth Rates")
+abline(v = 2002.75, lty = "dashed")
+lines(as.zoo(GDPGrowth.train), lwd = 2, col = "blue")
+```
+
+## An $AR(2)$-model for US GDP growth
+
+- Suppose GPD growth follows $AR(2)$-model w/ iid errors:
+
+  $$GDPGR_t = \beta_0 + \beta_1 GDPGR_{t-1} + \beta_2 GDPGR_{t-1} + u_t$$
+  
+  where $E[u_t|GDPGR_{t-1}, GDPGR_{t-2}, ...] = 0$
+  
+- Estimate model by OLS using $(GDPGR_t;t=1,2,...,T)$
+
+- Suppose further that $u_t \sim \mathcal{N}(0,\sigma_u^2)$, so the 95% forecast interval for $GDPGR_{T+1}$ is
+
+  \begin{equation*} \small
+  \left[ \, \widehat{GDPGR}_{T+1|T} - 1.96 \sqrt{\widehat{MSFE}},
+  \widehat{GDPGR}_{T+1|T} + 1.96 \sqrt{\widehat{MSFE}} \, \right]
+  \end{equation*}
+  
+## An $AR(2)$-model for US GDP growth
+
+```{r echo=TRUE, error=FALSE, warning=FALSE, out.width = "70%"}
+ar2 <- dynlm(ts(GDPGrowth.train) ~ L(ts(GDPGrowth.train)) + L(ts(GDPGrowth.train), 2)) 
+summary(ar2)
+```
+
+## One-step ahead US GDP growth forecast
+
+```{r echo=TRUE, error=FALSE, warning=FALSE, out.width = "70%"}
+T <-length(GDPGrowth.train) # Length of observed series
+# Produce one-step ahead forecast of GDP growth
+fcast.ar2 <- ar2$coefficients %*% c(1, GDPGrowth.train[T], GDPGrowth.train[(T-1)])
+fcast.ar2 # Print to console
+```
+
+## 95% forecast interval US GDP growth
+
+- Since $T >> p$, use $\widehat{MSFE} = SER = s_{\hat{u}}^2$ (see the pre-recorded lecture)
+
+```{r echo=TRUE, error=FALSE, warning=FALSE, out.width = "70%"}
+# Produce 95% forecast interval for US GDP growth
+lb <- fcast.ar2 - 1.96*summary(ar2)$sigma
+ub <- fcast.ar2 + 1.96*summary(ar2)$sigma
+c(lb, ub)
+```
+
+- Hence, 95% forecast interval from our $AR(2)$-model for US GDP growth is $[-3.81, 9.20]$, rather wide!
+
+## US GDP growth, forecast, and 95% forecast interval
+
+```{r echo=FALSE, error=FALSE, warning=FALSE, out.width = "70%"}
+# Plot US quarterly GDP time series w/ AR(1) and AR(4) forecasts
+plot(as.zoo(GDPGrowth),
+     col = "blue",
+     lwd = 1,
+     lty = "dashed",
+     ylab = "Growth Rates",
+     xlab = "Date",
+     main = "U.S. Real GDP Growth Rates")
+abline(v = 2002.75, lty = "dashed")
+lines(as.zoo(GDPGrowth.train), lwd = 2, col = "blue")
+points(2003,fcast.ar2, cex = 2, col ="red")
+points(2003,GDPGrowth["2003"][1], cex = 2, col ="blue")
+segments(2003, lb, 2003, ub, col = "red", lwd = 3)
+legend("bottomleft", inset = 0.02, c("Training series", "Realized value (2003:Q1)", "1-step-ahead forecast (2003:Q1), AR(2)", "95% forecast interval"), col=c("blue","blue","red","red"), pch=c(NA,1,1,NA), lty=c(1,NA,NA,1), lwd = c(2,NA,NA,3))
+```
+
+
+# Summary
+
+## Summary
+
+- Forecasts are inherently uncertain and error ridden; always report measures of forecast uncertainty along with the forecast
+
+- In practice, summary measures of forecast uncertainty are based on the Mean Squared Forecasting Error ($MSFE$)
+
+- A 95% forecast interval contains the future value of the forecasted variable in 95% of repeated applications
+
+- Report the estimated $MSFE$, or better yet, a forecast interval
+
